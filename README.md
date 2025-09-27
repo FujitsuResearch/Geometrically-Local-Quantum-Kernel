@@ -4,6 +4,40 @@ It has been introduced in the paper titled "Learning quantum many-body data loca
 
 Links: https://arxiv.org/abs/2509.13705
 
+# Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/FujitsuResearch/Geometrically-Local-Quantum-Kernel.git
+cd Geometrically-Local-Quantum-Kernel
+```
+
+
+2. **Install the required packages for Python (v3.10.12)**
+```bash
+# Create an environment
+python -m venv .venv
+
+# Activate the environment
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# Install packages
+pip install -r requirements.txt
+```
+
+3. **Install the required packages for Julia (v1.8.0)**
+```Julia
+# Press the `]` key to enter Pkg mode
+julia> ]
+
+# Activate the local project environment
+(@v1.8) pkg> activate .
+
+# Install all dependencies from the Manifest.toml file
+(your-repo-name) pkg> instantiate
+```
+
+
 # Usage
 This repository is organized into three main folders, each corresponding to specific figures in our paper. 
 Below is a guide to help you navigate the codebase and reproduce our results:
