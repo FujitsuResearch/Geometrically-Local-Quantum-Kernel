@@ -1,4 +1,4 @@
-# Geometrically-Local-Quantum-Kernel
+# Geometrically-Local-Quantum-Kernel (GLQK)
 This repository contains the source codes for the Geometrically local quantum kernel (GLQK), a novel method for efficiently learning quantum many-body data.
 It has been introduced in the paper titled "Learning quantum many-body data locally: A provably scalable framework."
 
@@ -48,34 +48,70 @@ Below is a guide to help you navigate the codebase and reproduce our results:
 In the file names, sk and tesk represent shadow kernel and GLQK, respectively. 
 
 ## `/Regression_Tsym`
-`/Regression_Tsym/data.jl` generates MPS data and corresponding classical shadows.
+- `/Regression_Tsym/data.jl` generates MPS data and corresponding classical shadows.
 
-`/Regression_Tsym/gram_sk.jl` and `/Regression_Tsym/gram_tesk.jl` calculates gram matrices with shadow kernel and GLQK, respectively.
+- `/Regression_Tsym/gram_sk.jl` and `/Regression_Tsym/gram_tesk.jl` calculates gram matrices with shadow kernel and GLQK, respectively.
 
-`/Regression_Tsym/krr_ndep_sk.py` and `/Regression_Tsym/krr_ndep_tesk.py` calculates the learning accuracy with shadow kernel and GLQK, respectively.
+- `/Regression_Tsym/krr_ndep_sk.py` and `/Regression_Tsym/krr_ndep_tesk.py` calculates the learning accuracy with shadow kernel and GLQK, respectively.
 
-`/Regression_Tsym/krr_scatter_sk.py` and `/Regression_Tsym/krr_scatter_tesk.py` calculates the scatter plot of predictions with shadow kernel and GLQK, respectively.
+- `/Regression_Tsym/krr_scatter_sk.py` and `/Regression_Tsym/krr_scatter_tesk.py` calculates the scatter plot of predictions with shadow kernel and GLQK, respectively.
 
-`/Regression_Tsym/results.ipynb` plots the results obtained from the above calculations.
+- `/Regression_Tsym/results.ipynb` plots the results obtained from the above calculations.
+
+```bash
+# n is the number of qubits
+julia data.jl $n
+
+# n is the number of qubits, w is the subsystem size, and e is the exponent of polynomial GLQK
+julia gram_sk.jl $n
+julia gram_tesk.jl $n $w $e
+
+# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
+python krr_ndep_sk.py -n $n -nt $nt -t $t
+python krr_ndep_tesk.py -n $n -nt $nt -t $t
+
+# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
+python krr_scatter_sk.py -n $n -nt $nt -t $t
+python krr_scatter_tesk.py -n $n -nt $nt -t $t
+```
 
 ## `/Regression_nonTsym`
-`/Regression_nonTsym/data.jl` generates MPS data and corresponding classical shadows.
+- `/Regression_nonTsym/data.jl` generates MPS data and corresponding classical shadows.
 
-`/Regression_nonTsym/gram_sk.jl` and `/Regression_nonTsym/gram_tesk.jl` calculates gram matrices with shadow kernel and GLQK, respectively.
+- `/Regression_nonTsym/gram_sk.jl` and `/Regression_nonTsym/gram_tesk.jl` calculates gram matrices with shadow kernel and GLQK, respectively.
 
-`/Regression_nonTsym/krr_ndep_sk.py` and `/Regression_nonTsym/krr_ndep_tesk.py` calculates the learning accuracy with shadow kernel and GLQK, respectively.
+- `/Regression_nonTsym/krr_ndep_sk.py` and `/Regression_nonTsym/krr_ndep_tesk.py` calculates the learning accuracy with shadow kernel and GLQK, respectively.
 
-`/Regression_nonTsym/krr_scatter_sk.py` and `/Regression_nonTsym/krr_scatter_tesk.py` calculates the scatter plot of predictions with shadow kernel and GLQK, respectively.
+- `/Regression_nonTsym/krr_scatter_sk.py` and `/Regression_nonTsym/krr_scatter_tesk.py` calculates the scatter plot of predictions with shadow kernel and GLQK, respectively.
 
-`/Regression_nonTsym/results.ipynb` plots the results obtained from the above calculations.
+- `/Regression_nonTsym/results.ipynb` plots the results obtained from the above calculations.
+
+```bash
+# n is the number of qubits
+julia data.jl $n
+
+# n is the number of qubits, w is the subsystem size, and e is the exponent of polynomial GLQK
+julia gram_sk.jl $n
+julia gram_tesk.jl $n $w $e
+
+# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
+python krr_ndep_sk.py -n $n -nt $nt -t $t
+python krr_ndep_tesk.py -n $n -nt $nt -t $t
+
+# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
+python krr_scatter_sk.py -n $n -nt $nt -t $t
+python krr_scatter_tesk.py -n $n -nt $nt -t $t
+```
 
 
 ## `/Quantum_phase_recognition`
-`/Quantum_phase_recognition/Data_dmrg.ipynb` generates MPS data and corresponding classical shadows.
+- `/Quantum_phase_recognition/Data_dmrg.ipynb` generates MPS data and corresponding classical shadows.
 
-`/Quantum_phase_recognition/Model_SK.ipynb` and `/Quantum_phase_recognition/Model_TESK.ipynb` calculates gram matrices with shadow kernel and GLQK, respectively.
+- `/Quantum_phase_recognition/Model_SK.ipynb` and `/Quantum_phase_recognition/Model_TESK.ipynb` calculates gram matrices with shadow kernel and GLQK, respectively.
 
-`/Quantum_phase_recognition/SVM_SK.ipynb` and `/Quantum_phase_recognition/SVM_TESK.ipynb` calculates the learning accuracy and PCA with shadow kernel and GLQK, respectively.
+- `/Quantum_phase_recognition/SVM_SK.ipynb` and `/Quantum_phase_recognition/SVM_TESK.ipynb` calculates the learning accuracy and PCA with shadow kernel and GLQK, respectively.
 
-`/Quantum_phase_recognition/results.ipynb` plots the results obtained from the above calculations.
+- `/Quantum_phase_recognition/results.ipynb` plots the results obtained from the above calculations.
+
+Please execute the jupyter notebooks.
 
