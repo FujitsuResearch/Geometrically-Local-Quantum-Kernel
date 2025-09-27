@@ -13,7 +13,7 @@ cd Geometrically-Local-Quantum-Kernel
 ```
 
 
-2. **Install the required packages for Python (v3.10.12)**
+2. **Install the required packages for Python (tested with v3.10.12)**
 ```bash
 # Create an environment
 python -m venv .venv
@@ -25,7 +25,7 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. **Install the required packages for Julia (v1.8.0)**
+3. **Install the required packages for Julia (tested with v1.8.0)**
 ```Julia
 # Press the `]` key to enter Pkg mode
 julia> ]
@@ -34,7 +34,7 @@ julia> ]
 (@v1.8) pkg> activate .
 
 # Install all dependencies from the Manifest.toml file
-(your-repo-name) pkg> instantiate
+(Geometrically-Local-Quantum-Kernel) pkg> instantiate
 ```
 
 
