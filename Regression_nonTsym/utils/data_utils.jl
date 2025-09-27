@@ -1,0 +1,154 @@
+# Haar random
+# ref：https://pennylane.ai/qml/demos/tutorial_haar_measure
+function haar_random(dim::Int)    
+                            
+    #Random.seed!(123456789+seed)
+                            
+    a=randn(dim,dim)
+    b=randn(dim,dim)
+    c = a+b*im
+                            
+    # QR decomposition
+    QRFactorization = qr(c)
+
+    # Q matrix
+    Q = QRFactorization.Q
+
+    # R matrix
+    R = QRFactorization.R
+
+    # Lambda matrix
+    Lambda = zeros(ComplexF64, dim, dim)
+    for i=1:dim
+        Lambda[i,i] = R[i,i]/abs(R[i,i])
+    end
+
+    # haar random
+    U = Q*Lambda
+    return U            
+end
+
+
+#non-translationally symmetric random product state
+function randomize_initial_state(N, sites)
+         
+    gates = ITensor[]
+    for i=1:N
+        mat = haar_random(2) 
+        s1 = sites[i]
+        op = itensor(mat, s1', s1)
+        push!(gates, op)
+    end
+
+    psi = MPS(sites, n -> isodd(n) ? "Up" : "Up")
+    psi = ITensors.apply(gates, psi; cutoff = 1e-15)
+    
+    return psi
+end
+
+
+#Time evolution
+function TEBD(J::Float64, h::Float64, N::Int64, seed0::Int64)
+    
+    #
+    Random.seed!(seed0)
+    
+    Jxx = 2*J*rand(N) - J*ones(N)
+    Jyy = 2*J*rand(N) - J*ones(N)
+    Jzz = 2*J*rand(N) - J*ones(N)
+    Jxy = 2*J*rand(N) - J*ones(N)
+    Jyx = 2*J*rand(N) - J*ones(N)
+    Jyz = 2*J*rand(N) - J*ones(N)
+    Jzy = 2*J*rand(N) - J*ones(N)
+    Jzx = 2*J*rand(N) - J*ones(N)
+    Jxz = 2*J*rand(N) - J*ones(N)
+    
+    hx = 2*h*rand(N) - h*ones(N)
+    hy = 2*h*rand(N) - h*ones(N)
+    hz = 2*h*rand(N) - h*ones(N)
+    
+    #
+    tau0 = 0.01
+    ttotal = 0.5
+    step = ceil(ttotal/tau0)
+    tau = ttotal/step 
+    
+    #
+    sites = siteinds("S=1/2", N)
+    c = div(N, 2) # center site
+    cutoff = 1E-10
+
+    # Make gates (1,2),(2,3),(3,4),...
+    gates = ITensor[]
+    for j in 1:N
+        s1 = sites[j]
+        s2 = sites[j%N + 1]
+        hj = ( Jxx[j] * op("X", s1) * op("X", s2) 
+             + Jyy[j] * op("Y", s1) * op("Y", s2) 
+             + Jzz[j] * op("Z", s1) * op("Z", s2) 
+             + Jxy[j] * op("X", s1) * op("Y", s2) 
+             + Jyx[j] * op("Y", s1) * op("X", s2) 
+             + Jyz[j] * op("Y", s1) * op("Z", s2) 
+             + Jzy[j] * op("Z", s1) * op("Y", s2) 
+             + Jzx[j] * op("Z", s1) * op("X", s2) 
+             + Jxz[j] * op("X", s1) * op("Z", s2) 
+             + (hx[j]/2.) * op("X", s1) * op("I", s2) 
+             + (hx[j%N+1]/2.) * op("I", s1) * op("X", s2)
+             + (hy[j]/2.) * op("Y", s1) * op("I", s2) 
+             + (hy[j%N+1]/2.) * op("I", s1) * op("Y", s2)
+             + (hz[j]/2.) * op("Z", s1) * op("I", s2) 
+             + (hz[j%N+1]/2.) * op("I", s1) * op("Z", s2) )
+        #https://itensor.github.io/ITensors.jl/dev/IncludedSiteTypes.html#%22Qubit%22-SiteType
+        Gj = exp(-im * tau * hj / 2.0)
+        push!(gates, Gj)
+    end
+    # Include gates in reverse order too
+    # (N,N-1),(N-1,N-2),...
+    append!(gates, reverse(gates))
+
+    
+    # Initialize psi to be a random product state
+    #psi = MPS(sites, n -> isodd(n) ? "Up" : "Up")
+    psi = randomize_initial_state(N, sites)
+
+    # Compute and print <Sz> at each time step
+    # then apply the gates to go to the next time
+    for t in 0.0:tau:ttotal        
+        t≈ttotal && break
+        psi = apply(gates, psi; cutoff)
+        normalize!(psi)
+    end
+    
+    return psi
+end
+
+
+# Observables
+function XY(psi::MPS, a, b)
+    
+    sites = siteinds(psi) 
+    
+    os = OpSum()
+    os += "X",a,"Y",b
+    H = MPO(os,sites)
+    xy = inner(psi',H,psi)
+    
+    return real(xy)
+end
+
+function XXYY_nonlinear(psi::MPS, a, b, c, d)
+    
+    sites = siteinds(psi) 
+    
+    os = OpSum()
+    os += "X",a,"X",b
+    H = MPO(os,sites)
+    xx = inner(psi',H,psi)
+    
+    os = OpSum()
+    os += "Y",c,"Y",d
+    H = MPO(os,sites)
+    yy = inner(psi',H,psi)
+    
+    return real(xx*yy)
+end
