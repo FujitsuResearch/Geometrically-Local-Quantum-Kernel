@@ -2,7 +2,7 @@
 This repository contains the source codes for the Geometrically local quantum kernel (GLQK), a novel method for efficiently learning quantum many-body data.
 It has been introduced in the paper titled "Learning quantum many-body data locally: A provably scalable framework."
 
-Links: https://arxiv.org/abs/2509.13705
+Link: https://arxiv.org/abs/2509.13705
 
 # Installation
 
