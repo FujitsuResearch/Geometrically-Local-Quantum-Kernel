@@ -93,6 +93,55 @@ function Pauli_epval(cs::ClassicalShadow, obs::Array{Int64,1})
 end
 
 
+# Calculate reduced density matrix from classical shadow
+function reduced_density_matrix(cs::ClassicalShadow, site_list::Array{Int64,1})
+    nsites = length(site_list)
+    dim = 2^nsites
+
+    # Pauli matrices: index 0=I, 1=X, 2=Y, 3=Z
+    pauli_mats = [
+        ComplexF64[1 0; 0 1],    # I
+        ComplexF64[0 1; 1 0],    # X
+        ComplexF64[0 -im; im 0], # Y
+        ComplexF64[1 0; 0 -1]    # Z
+    ]
+
+    rho = zeros(ComplexF64, dim, dim)
+
+    # 4^nsites 通りのパウリ列を全列挙
+    for p in 0:(4^nsites - 1)
+
+        # p を4進数でデコード → 各サイトのパウリ index
+        pauli_on_sites = zeros(Int64, nsites)
+        tmp = p
+        for j in 1:nsites
+            pauli_on_sites[j] = tmp % 4
+            tmp = tmp ÷ 4
+        end
+
+        # 全系の obs 配列を構築（site_list 以外は 0=I）
+        obs = zeros(Int64, cs.nqubits)
+        for j in 1:nsites
+            obs[site_list[j]] = pauli_on_sites[j]
+        end
+
+        # Classical shadow から期待値を計算
+        epval = Pauli_epval(cs, obs)
+
+        # テンソル積 P = P1 ⊗ P2 ⊗ ... を構築
+        P = pauli_mats[pauli_on_sites[1] + 1]
+        for j in 2:nsites
+            P = kron(P, pauli_mats[pauli_on_sites[j] + 1])
+        end
+
+        rho += epval * P
+    end
+
+    return rho / dim
+end
+
+
+
 
 ########################################################################################################################################################################################################################################################################################################################################################################################################################################################################
 mutable struct ClassicalShadow_SK

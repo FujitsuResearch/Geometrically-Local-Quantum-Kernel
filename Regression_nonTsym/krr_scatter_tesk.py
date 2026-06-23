@@ -34,7 +34,7 @@ test_list = [i for i in range(num_train,num_train+num_test)]
 kfold=5
 ite=1
 alpha_list = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000]
-we_list = [(2,1),(2,2),(4,1),(4,2),(6,1),(6,2)]
+we_list = [(1,1),(1,2),(2,1),(2,2),(4,1),(4,2),(6,1),(6,2)]
 
 #Gram matrix
 G0_list = []

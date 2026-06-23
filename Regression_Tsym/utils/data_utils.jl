@@ -151,3 +151,139 @@ function XXYY_nonlinear(psi::MPS, a, b, c, d)
     
     return real(xx*yy)
 end
+
+function expXY(psi::MPS, a, b)
+    
+    sites = siteinds(psi) 
+    
+    os = OpSum()
+    os += "X",a,"Y",b
+    H = MPO(os,sites)
+    xy = inner(psi',H,psi)
+    z = exp(xy)
+    
+    return real(z)
+end
+
+function EE(psi::MPS, a::Int, b::Int)
+
+    @assert b == a + 1
+
+    psi = copy(psi)
+    ITensors.orthogonalize!(psi, a)
+
+    sites = siteinds(psi)
+
+    sa = sites[a]
+    sb = sites[b]
+
+    AA = psi[a] * psi[b]
+
+    rho = prime(AA, sa, sb) * dag(AA)
+
+    Cbra = combiner(prime(sa), prime(sb))
+    Cket = combiner(sa, sb)
+
+    M = Cbra * rho * Cket
+
+    #println("inds(M) = ", inds(M))
+
+    rho_mat = matrix(M)
+
+    #println("size(rho_mat) = ", size(rho_mat))
+
+    vals = eigvals(Hermitian((rho_mat + rho_mat')/2))
+
+    vals .= max.(vals, 0.0)
+
+    #println("trace = ", sum(vals))
+
+    vals ./= sum(vals)
+
+    return -sum(p * log(p) for p in vals if p > 1e-15)
+end
+
+function EE_pauli(psi::MPS, a::Int, b::Int)
+
+    sites = siteinds(psi)
+
+    # Pauli matrices（2x2）
+    II = ComplexF64[1 0; 0 1]
+    X  = ComplexF64[0 1; 1 0]
+    Y  = ComplexF64[0 -im; im 0]
+    Z  = ComplexF64[1 0; 0 -1]
+
+    # expectation values of Pauli operators
+    os = OpSum(); os += "X", b;      H = MPO(os, sites); IX = inner(psi', H, psi)
+    os = OpSum(); os += "Y", b;      H = MPO(os, sites); IY = inner(psi', H, psi)
+    os = OpSum(); os += "Z", b;      H = MPO(os, sites); IZ = inner(psi', H, psi)
+
+    os = OpSum(); os += "X", a;      H = MPO(os, sites); XI = inner(psi', H, psi)
+    os = OpSum(); os += "X",a,"X",b; H = MPO(os, sites); XX = inner(psi', H, psi)
+    os = OpSum(); os += "X",a,"Y",b; H = MPO(os, sites); XY = inner(psi', H, psi)
+    os = OpSum(); os += "X",a,"Z",b; H = MPO(os, sites); XZ = inner(psi', H, psi)
+
+    os = OpSum(); os += "Y", a;      H = MPO(os, sites); YI = inner(psi', H, psi)
+    os = OpSum(); os += "Y",a,"X",b; H = MPO(os, sites); YX = inner(psi', H, psi)
+    os = OpSum(); os += "Y",a,"Y",b; H = MPO(os, sites); YY = inner(psi', H, psi)
+    os = OpSum(); os += "Y",a,"Z",b; H = MPO(os, sites); YZ = inner(psi', H, psi)
+
+    os = OpSum(); os += "Z", a;      H = MPO(os, sites); ZI = inner(psi', H, psi)
+    os = OpSum(); os += "Z",a,"X",b; H = MPO(os, sites); ZX = inner(psi', H, psi)
+    os = OpSum(); os += "Z",a,"Y",b; H = MPO(os, sites); ZY = inner(psi', H, psi)
+    os = OpSum(); os += "Z",a,"Z",b; H = MPO(os, sites); ZZ = inner(psi', H, psi)
+
+    II_val = inner(psi, psi)
+
+    # ρ = (1/4) Σ_{μν} <σ^μ_a σ^ν_b> σ^μ ⊗ σ^ν
+    rho_mat = (1/4) * (
+        II_val * kron(II, II) +
+        IX     * kron(II, X)  +
+        IY     * kron(II, Y)  +
+        IZ     * kron(II, Z)  +
+        XI     * kron(X,  II) +
+        XX     * kron(X,  X)  +
+        XY     * kron(X,  Y)  +
+        XZ     * kron(X,  Z)  +
+        YI     * kron(Y,  II) +
+        YX     * kron(Y,  X)  +
+        YY     * kron(Y,  Y)  +
+        YZ     * kron(Y,  Z)  +
+        ZI     * kron(Z,  II) +
+        ZX     * kron(Z,  X)  +
+        ZY     * kron(Z,  Y)  +
+        ZZ     * kron(Z,  Z)
+    )
+
+    # Hermitianization and eigenvalue calculation
+    rho_mat = 0.5 * (rho_mat + rho_mat')
+    vals = eigvals(Hermitian(rho_mat))
+    vals .= max.(vals, 0.0)
+    vals ./= sum(vals)
+
+    return -sum(p * log(p) for p in vals if p > 1e-15)
+end
+
+
+# Function to project ρ̂ onto a physical state (minimizing Frobenius norm)
+function project_to_physical(rho_est::Matrix{ComplexF64})
+    n = size(rho_est, 1)
+    
+    σ = HermitianSemidefinite(n)
+    diff = σ - rho_est
+    obj = sumsquares(real(diff)) + sumsquares(imag(diff))
+    
+    prob = minimize(obj, [tr(σ) == 1])
+    
+    solve!(prob, SCS.Optimizer)
+    
+    return Hermitian(evaluate(σ))
+end
+
+# Entanglement entropy
+function entanglement_entropy(rho)
+    vals = eigvals(Hermitian(rho))
+    vals = max.(real.(vals), 0.0)  # Clipping
+    vals ./= sum(vals)              # Renormalization
+    return -sum(v -> v > 1e-12 ? v * log(v) : 0.0, vals)
+end

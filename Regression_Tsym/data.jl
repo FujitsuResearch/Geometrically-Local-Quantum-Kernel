@@ -11,6 +11,7 @@ using ITensors, ITensorMPS
 using ProgressBars
 using Random
 using JLD2
+using Convex, SCS
 const pynp = pyimport("numpy")
 
 BLAS.set_num_threads(1) 
@@ -29,7 +30,7 @@ nsamp = 500 #shadow size
 
 
 
-# time evolution & classical shadow & observable
+# time evolution & classical shadow
 seed_list = [i for i=1:ndata]
 
 for seed in seed_list
@@ -40,8 +41,7 @@ for seed in seed_list
 end
 
 
-
-# exact observable
+# exact values for g1, g2, g3
 a=1
 b = div(N,2)
 c = div(N,4)
@@ -67,7 +67,7 @@ filename = @sprintf("gram_matrix_N=%d/xxyy_nonlinear.csv", N)
 pynp.savetxt(filename, obs3, delimiter=",")
 
 
-# estimate Pauli observables from classical shadow
+# shadow estimates for g1, g2, g3
 cs_obs1 = [] # xy_corr_center
 cs_obs2 = [] # xy_corr
 cs_obs3 = [] # xxyy_nonlinear
@@ -103,3 +103,51 @@ pynp.savetxt(filename, cs_obs2, delimiter=",")
 
 filename = @sprintf("gram_matrix_N=%d/cs_estimate_xxyy_nonlinear.csv", N)
 pynp.savetxt(filename, cs_obs3, delimiter=",")
+
+
+
+# EE (g4)
+b = div(N,2)
+obs1 = [] # EE
+obs_cs = [] # EE from shadow
+
+for seed in seed_list
+    psi = load("data_N=$(N)/qstate_seed=$(seed).jld2","psi")
+    push!(obs1, EE(psi, b, b+1))
+
+    cs = load("data_N=$(N)/cs_nsamp=$(nsamp)_seed=$(seed).jld2","cs")
+    sigma = reduced_density_matrix(cs, [b,b+1])
+    rho = project_to_physical(sigma)
+    push!(obs_cs, entanglement_entropy(rho))
+end
+
+filename = @sprintf("gram_matrix_N=%d/EE.csv", N)
+pynp.savetxt(filename, obs1, delimiter=",")
+
+filename = @sprintf("gram_matrix_N=%d/cs_estimate_EE.csv", N)
+pynp.savetxt(filename, obs_cs, delimiter=",")
+
+
+# expXY (g5)
+b = div(N,2)
+obs1 = [] # expXY
+obs_cs = [] # expXY from shadow
+
+str_xy = [0 for i=1:N]
+str_xy[b] = 1
+str_xy[b+1] = 2
+
+for seed in seed_list
+    psi = load("data_N=$(N)/qstate_seed=$(seed).jld2","psi")
+    push!(obs1, expXY(psi, b, b+1))
+
+    cs = load("data_N=$(N)/cs_nsamp=$(nsamp)_seed=$(seed).jld2","cs")
+    xy = Pauli_epval(cs, str_xy)
+    push!(obs_cs, exp(xy))
+end
+
+filename = @sprintf("gram_matrix_N=%d/expXY.csv", N)
+pynp.savetxt(filename, obs1, delimiter=",")
+
+filename = @sprintf("gram_matrix_N=%d/cs_estimate_expXY.csv", N)
+pynp.savetxt(filename, obs_cs, delimiter=",")
