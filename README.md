@@ -1,117 +1,90 @@
-# Geometrically-Local-Quantum-Kernel (GLQK)
-This repository contains the source codes for the Geometrically local quantum kernel (GLQK), a novel method for efficiently learning quantum many-body data.
-It has been introduced in the paper titled "Learning quantum many-body data locally: A provably scalable framework."
+# Geometrically Local Quantum Kernel (GLQK)
 
-Link: https://arxiv.org/abs/2509.13705
+Source code for the numerical experiments in
 
-# Installation
+> K. Chinzei, Q. H. Tran, N. Matsumoto, Y. Endo, and H. Oshima, "Provably scalable learning from quantum many-body data via locality," [arXiv:2509.13705](https://arxiv.org/abs/2509.13705).
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/FujitsuResearch/Geometrically-Local-Quantum-Kernel.git
-cd Geometrically-Local-Quantum-Kernel
-```
+In file names, `sk` denotes the shadow kernel and `tesk`/`TESK` the polynomial GLQK with the truncated shadow kernel.
 
+|Folder|Figure|Task|
+|---|---|---|
+|`Regression_Tsym/`|Fig. 3(a)|Regression, translationally symmetric data|
+|`Regression_nonTsym/`|Fig. 3(b)|Regression, general data|
+|`Quantum_phase_recognition/`|Fig. 4|Quantum phase recognition|
 
-2. **Install the required packages for Python (tested with v3.10.12)**
-```bash
-# Create an environment
-python -m venv .venv
+## Requirements
 
-# Activate the environment
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# Install packages
-pip install -r requirements.txt
-```
-
-3. **Install the required packages for Julia (tested with v1.8.0)**
-```Julia
-# Press the `]` key to enter Pkg mode
-julia> ]
-
-# Activate the local project environment
-(@v1.8) pkg> activate .
-
-# Install all dependencies from the Manifest.toml file
-(Geometrically-Local-Quantum-Kernel) pkg> instantiate
-```
-
-
-# Usage
-This repository is organized into three main folders, each corresponding to specific figures in our paper. 
-Below is a guide to help you navigate the codebase and reproduce our results:
-- `/Regression_Tsym` for Fig.3(a) in the paper
-- `/Regression_nonTsym` for Fig.3(b) in the paper
-- `/Quantum_phase_recognition` for Fig.4 in the paper
-
-In the file names, sk and tesk represent shadow kernel and GLQK, respectively. 
-
-## `/Regression_Tsym`
-- `/Regression_Tsym/data.jl` generates MPS data and corresponding classical shadows.
-
-- `/Regression_Tsym/gram_sk.jl` and `/Regression_Tsym/gram_tesk.jl` calculates gram matrices with shadow kernel and GLQK, respectively.
-
-- `/Regression_Tsym/krr_ndep_sk.py` and `/Regression_Tsym/krr_ndep_tesk.py` calculates the learning accuracy with shadow kernel and GLQK, respectively.
-
-- `/Regression_Tsym/krr_scatter_sk.py` and `/Regression_Tsym/krr_scatter_tesk.py` calculates the scatter plot of predictions with shadow kernel and GLQK, respectively.
-
-- `/Regression_Tsym/results.ipynb` plots the results obtained from the above calculations.
+**Python 3.10** (tested with 3.10.12; 3.11 should also work):
 
 ```bash
-# n is the number of qubits
-julia data.jl $n
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt jupyter
+```
 
-# n is the number of qubits, w is the subsystem size, and e is the exponent of polynomial GLQK
-julia gram_sk.jl $n
-julia gram_tesk.jl $n $w $e
+**Julia 1.8.x** (`Manifest.toml` was generated with 1.8.0). In the same shell, at the repository root:
 
-# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
-python krr_ndep_sk.py -n $n -nt $nt -t $t
-python krr_ndep_tesk.py -n $n -nt $nt -t $t
+```bash
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+julia -e 'using Pkg; Pkg.add("IJulia")'    # for the Julia notebooks
+export JULIA_PROJECT=@.                     # the scripts call plain `julia`
+```
 
-# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
-python krr_scatter_sk.py -n $n -nt $nt -t $t
+If `pyimport("numpy")` fails, rebuild PyCall: `julia -e 'ENV["PYTHON"]=""; using Pkg; Pkg.build("PyCall")'`.
+
+## Usage
+
+### Regression
+
+Run inside `Regression_Tsym/` or `Regression_nonTsym/`:
+
+```bash
+julia data.jl $n                                  # MPS data, classical shadows, labels
+julia gram_sk.jl $n                               # Gram matrix (shadow kernel)
+julia gram_tesk.jl $n $w $e                       # Gram matrix (GLQK); w = ζ, e = κ
+python krr_ndep_sk.py      -n $n -nt $nt -t $t    # R^2 vs n (10 random splits)
+python krr_ndep_tesk.py    -n $n -nt $nt -t $t
+python krr_scatter_sk.py   -n $n -nt $nt -t $t    # scatter plots
 python krr_scatter_tesk.py -n $n -nt $nt -t $t
+jupyter notebook results.ipynb                    # figures
 ```
 
-## `/Regression_nonTsym`
-- `/Regression_nonTsym/data.jl` generates MPS data and corresponding classical shadows.
+|Parameter|`Regression_Tsym`|`Regression_nonTsym`|
+|---|---|---|
+|`n`|10, 20, ..., 80|same|
+|(`w`, `e`)|{1, 2, 4, 6} × {1, 2}|same|
+|`nt` (R^2 vs n)|50, 100, 250, 500|4000, 8000|
+|`nt` (scatter, `n` = 80)|100, 500|8000|
+|`t`|`xy_corr_center`, `xy_corr`, `xxyy_nonlinear`, `EE`, `expXY`|same|
 
-- `/Regression_nonTsym/gram_sk.jl` and `/Regression_nonTsym/gram_tesk.jl` calculates gram matrices with shadow kernel and GLQK, respectively.
+The GLQK scripts select (`w`, `e`) by cross-validation, so compute all eight GLQK Gram matrices first.
 
-- `/Regression_nonTsym/krr_ndep_sk.py` and `/Regression_nonTsym/krr_ndep_tesk.py` calculates the learning accuracy with shadow kernel and GLQK, respectively.
-
-- `/Regression_nonTsym/krr_scatter_sk.py` and `/Regression_nonTsym/krr_scatter_tesk.py` calculates the scatter plot of predictions with shadow kernel and GLQK, respectively.
-
-- `/Regression_nonTsym/results.ipynb` plots the results obtained from the above calculations.
+The shell scripts in `scripts/` launch all jobs in the background. Run them from the regression folder and wait for each step to finish:
 
 ```bash
-# n is the number of qubits
-julia data.jl $n
-
-# n is the number of qubits, w is the subsystem size, and e is the exponent of polynomial GLQK
-julia gram_sk.jl $n
-julia gram_tesk.jl $n $w $e
-
-# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
-python krr_ndep_sk.py -n $n -nt $nt -t $t
-python krr_ndep_tesk.py -n $n -nt $nt -t $t
-
-# n is the number of qubits, nt is the number of training data, and t is the type of observables (xy_corr_center, xy_corr, xxyy_nonlinear)
-python krr_scatter_sk.py -n $n -nt $nt -t $t
-python krr_scatter_tesk.py -n $n -nt $nt -t $t
+bash scripts/script_data.sh;  while pgrep -f data.jl > /dev/null; do sleep 60; done
+bash scripts/script_gram.sh;  while pgrep -f gram_   > /dev/null; do sleep 60; done
+bash scripts/script_ndep.sh
+bash scripts/script_scatter.sh
 ```
 
+### Quantum phase recognition
 
-## `/Quantum_phase_recognition`
-- `/Quantum_phase_recognition/Data_dmrg.ipynb` generates MPS data and corresponding classical shadows.
+Run inside `Quantum_phase_recognition/`. Parameters are set in the first cell of each notebook; run each notebook from top to bottom in a fresh kernel:
 
-- `/Quantum_phase_recognition/Model_SK.ipynb` and `/Quantum_phase_recognition/Model_TESK.ipynb` calculates gram matrices with shadow kernel and GLQK, respectively.
+1. `Data_dmrg.ipynb` and `Model_SK.ipynb` (Julia): for `N` = 10, 20, ..., 80.
+2. `Model_TESK.ipynb` (Julia): for each `N` and (`width`, `exponent`) ∈ {2, 4, 6} × {1, 2}.
+3. `SVM_SK.ipynb` and `SVM_TESK.ipynb` (Python): run the "n-dependence" cell with `num_train` = 500 and 250. The PCA cells give Figs. 4(d) and 4(e).
+4. `results.ipynb`: Fig. 4(c).
 
-- `/Quantum_phase_recognition/SVM_SK.ipynb` and `/Quantum_phase_recognition/SVM_TESK.ipynb` calculates the learning accuracy and PCA with shadow kernel and GLQK, respectively.
+## Correspondence with the paper
 
-- `/Quantum_phase_recognition/results.ipynb` plots the results obtained from the above calculations.
+|`-t`|Paper|Implemented as|
+|---|---|---|
+|`xy_corr_center`|g1 = ⟨X₁Y₂⟩|⟨X_{n/2} Y_{n/2+1}⟩|
+|`xxyy_nonlinear`|g2 = ⟨X₁X₂⟩⟨Y₁Y₂⟩|⟨X_{n/2} X_{n/2+1}⟩⟨Y_{n/2} Y_{n/2+1}⟩|
+|`xy_corr`|g3 = ⟨X₁Y_{n/2+1}⟩|⟨X_{⌊n/4⌋} Y_{⌊3n/4⌋}⟩ (separation n/2)|
+|`EE`|g4 = −tr(ρ₁₂ log ρ₁₂)|entropy of the RDM on sites n/2, n/2+1|
+|`expXY`|g5 = exp(⟨X₁Y₂⟩)|exp(⟨X_{n/2} Y_{n/2+1}⟩)|
 
-Please execute the jupyter notebooks.
-
+Both Hamiltonians are defined on a ring (periodic boundary condition). By translation symmetry (D1) or the translation invariance of the data distribution (D2), these sites are equivalent to those in the paper.
